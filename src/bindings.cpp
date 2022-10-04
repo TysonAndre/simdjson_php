@@ -163,14 +163,6 @@ static simdjson::error_code create_array_from_element(simdjson::ondemand::value 
             simdjson_set_zval_to_string(return_value, str);
             break;
         }
-            /*
-        case simdjson::ondemand::json_type::INT64 :
-            simdjson_set_zval_to_int64(return_value, element.get_int64().value_unsafe());
-            break;
-            // UINT64 is used for positive values exceeding INT64_MAX
-        case simdjson::ondemand::json_type::UINT64 : ZVAL_DOUBLE(return_value, (double)element.get_uint64().value_unsafe());
-            break;
-            */
         case simdjson::ondemand::json_type::number : {
             simdjson::ondemand::number v;
             SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(v, element.get_number());
@@ -186,7 +178,8 @@ static simdjson::error_code create_array_from_element(simdjson::ondemand::value 
             ZVAL_NULL(return_value);
             break;
         case simdjson::ondemand::json_type::array : {
-            auto json_array = element.get_array().value_unsafe();
+            simdjson::ondemand::array json_array;
+            SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(json_array, element.get_array());
 #if PHP_VERSION_ID >= 70300
             bool is_empty;
             SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(is_empty, json_array.is_empty());
@@ -216,7 +209,8 @@ static simdjson::error_code create_array_from_element(simdjson::ondemand::value 
             break;
         }
         case simdjson::ondemand::json_type::object : {
-            auto json_object = element.get_object().value_unsafe();
+            simdjson::ondemand::object json_object;
+            SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(json_object, element.get_object());
 #if PHP_VERSION_ID >= 70300
             bool is_empty;
             SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(is_empty, json_object.is_empty());
@@ -232,15 +226,18 @@ static simdjson::error_code create_array_from_element(simdjson::ondemand::value 
                 zval value;
                 simdjson::ondemand::value field_value;
                 simdjson::error_code error = field.value().get(field_value);
+                std::string_view key;
                 if (!error) {
                     error = create_array_from_element(field_value, &value);
+                    if (!error) {
+                        error = field.unescaped_key().get(key);
+                    }
                 }
                 if (error) {
                     zend_array_destroy(arr);
                     return error;
                 }
                 /* TODO consider using zend_string_init_existing_interned in php 8.1+ to save memory and time freeing strings. */
-                auto key = field.unescaped_key().value_unsafe();
                 simdjson_add_key_to_symtable(arr, key.data(), key.size(), &value);
             }
             ZVAL_ARR(return_value, arr);
@@ -264,12 +261,18 @@ static zend_always_inline simdjson::error_code create_scalar_from_document(simdj
             SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(v, doc.get_number());
             return parse_number_from_element(v, return_value);
         }
-        case simdjson::ondemand::json_type::string:
-            simdjson_set_zval_to_string(return_value, doc.get_string().value_unsafe());
+        case simdjson::ondemand::json_type::string: {
+            std::string_view str;
+            SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(str, doc.get_string());
+            simdjson_set_zval_to_string(return_value, str);
             break;
-        case simdjson::ondemand::json_type::boolean:
-            ZVAL_BOOL(return_value, doc.get_bool().value_unsafe());
+        }
+        case simdjson::ondemand::json_type::boolean: {
+            bool b;
+            SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(b, doc.get_bool());
+            ZVAL_BOOL(return_value, b);
             break;
+        }
         case simdjson::ondemand::json_type::null:
             ZVAL_NULL(return_value);
             break;
@@ -298,27 +301,23 @@ static simdjson::error_code create_object_from_element(simdjson::ondemand::value
     simdjson::ondemand::json_type type;
     SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(type, element.type());
     switch (type) {
-        //ASCII sort
-        case simdjson::ondemand::json_type::string :
-            simdjson_set_zval_to_string(return_value, element.get_string().value_unsafe());
+        case simdjson::ondemand::json_type::string: {
+            std::string_view str;
+            SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(str, element.get_string());
+            simdjson_set_zval_to_string(return_value, str);
             break;
-            /*
-        case simdjson::ondemand::json_type::INT64 :
-            simdjson_set_zval_to_int64(&v, element.get_int64().value_unsafe());
-            break;
-            // UINT64 is used for positive values exceeding INT64_MAX
-        case simdjson::ondemand::json_type::UINT64 : ZVAL_DOUBLE(&v, (double)element.get_uint64().value_unsafe());
-            break;
-            */
-            // TODO parse int type
+        }
         case simdjson::ondemand::json_type::number : {
             simdjson::ondemand::number v;
             SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(v, element.get_number());
             return parse_number_from_element(v, return_value);
         }
-        case simdjson::ondemand::json_type::boolean :
-            ZVAL_BOOL(return_value, element.get_bool().value_unsafe());
+        case simdjson::ondemand::json_type::boolean: {
+            bool b;
+            SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(b, element.get_bool());
+            ZVAL_BOOL(return_value, b);
             break;
+        }
         case simdjson::ondemand::json_type::null :
             ZVAL_NULL(return_value);
             break;
@@ -353,14 +352,20 @@ static simdjson::error_code create_object_from_element(simdjson::ondemand::value
             break;
         }
         case simdjson::ondemand::json_type::object : {
-            auto json_object = element.get_object().value_unsafe();
+            simdjson::ondemand::object json_object;
+            SIMDJSON_PHP_SET_VAR_OR_RETURN_ERROR(json_object, element.get_object());
             object_init(return_value);
 #if PHP_VERSION_ID >= 80000
             zend_object *obj = Z_OBJ_P(return_value);
 #endif
 
             for (auto field : json_object) {
-                auto json_key = field.unescaped_key().value_unsafe();
+                std::string_view json_key;
+                simdjson::error_code error = field.unescaped_key().get(json_key);
+                if (error) {
+                    zval_ptr_dtor(return_value);
+                    return error;
+                }
                 const char *data = json_key.data();
                 const size_t size = json_key.size();
 				/* PHP 7.1 allowed using the empty string as a property of an object */
@@ -372,7 +377,7 @@ static simdjson::error_code create_object_from_element(simdjson::ondemand::value
                     return simdjson::NUM_ERROR_CODES;
                 }
                 simdjson::ondemand::value field_value;
-                simdjson::error_code error = field.value().get(field_value);
+                error = field.value().get(field_value);
                 zval value;
                 if (!error) {
                     error = create_object_from_element(field_value, &value);

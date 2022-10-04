@@ -33,7 +33,7 @@ if test "$PHP_SIMDJSON" != "no"; then
       php_simdjson.cpp                    \
       src/bindings.cpp                    \
       src/simdjson.cpp],
-    $ext_shared,, "-std=c++17 -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -DSIMDJSON_EXCEPTIONS=0", cxx)
+    $ext_shared,, "-std=c++17 -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -DSIMDJSON_EXCEPTIONS=0 -DSIMDJSON_DEVELOPMENT_CHECKS=0", cxx)
 
   PHP_INSTALL_HEADERS([ext/simdjson], [php_simdjson.h])
   PHP_ADD_MAKEFILE_FRAGMENT
