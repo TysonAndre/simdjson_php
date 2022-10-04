@@ -15,10 +15,11 @@
 
 extern zend_class_entry *simdjson_exception_ce;
 
-simdjson::dom::parser* cplus_simdjson_create_parser(void);
-void cplus_simdjson_free_parser(simdjson::dom::parser* parser);
-bool cplus_simdjson_is_valid(const char *json, size_t len);
-void cplus_simdjson_parse(const char *json, size_t len, zval *return_value, unsigned char assoc, size_t depth);
-void cplus_simdjson_key_value(const char *json, size_t len, const char *key, zval *return_value, unsigned char assoc, size_t depth);
-u_short cplus_simdjson_key_exists(const char *json, size_t len, const char *key, size_t depth);
-void cplus_simdjson_key_count(const char *json, size_t len, const char *key, zval *return_value, size_t depth);
+simdjson::ondemand::parser* cplus_simdjson_create_ondemand_parser(void);
+void cplus_simdjson_free_ondemand_parser(simdjson::ondemand::parser* parser);
+bool cplus_simdjson_is_valid(simdjson::ondemand::parser& parser, const char *json, size_t len, size_t depth);
+void cplus_simdjson_parse(simdjson::ondemand::parser& parser, const char *json, size_t len, zval *return_value, unsigned char assoc, size_t depth);
+simdjson::error_code cplus_simdjson_key_value(simdjson::ondemand::parser& parser, const char *json, size_t len, const char *key, zval *return_value, unsigned char assoc, size_t depth);
+u_short cplus_simdjson_key_exists(simdjson::ondemand::parser& parser, const char *json, size_t len, const char *key, size_t depth);
+simdjson::error_code cplus_simdjson_key_count(simdjson::ondemand::parser& parser, const char *json, size_t len, const char *key, zval *return_value, size_t depth);
+void cplus_simdjson_throw_jsonexception(simdjson::error_code error);

@@ -70,25 +70,11 @@ SIMDJSON_ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(simdjson_key_count_arginfo, 0, 
         ZEND_ARG_TYPE_INFO(0, depth, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
-extern simdjson::dom::parser* cplus_simdjson_create_parser(void);
-
-extern void cplus_simdjson_free_parser(simdjson::dom::parser* parser);
-
-extern bool cplus_simdjson_is_valid(simdjson::dom::parser& parser, const char *json, size_t len, size_t depth);
-
-extern void cplus_simdjson_parse(simdjson::dom::parser& parser, const char *json, size_t len, zval *return_value, unsigned char assoc, size_t depth);
-
-extern void cplus_simdjson_key_value(simdjson::dom::parser& parser, const char *json, size_t len, const char *key, zval *return_value, unsigned char assoc, size_t depth);
-
-extern u_short cplus_simdjson_key_exists(simdjson::dom::parser& parser, const char *json, size_t len, const char *key, size_t depth);
-
-extern void cplus_simdjson_key_count(simdjson::dom::parser& parser, const char *json, size_t len, const char *key, zval *return_value, size_t depth);
-
 #define SIMDJSON_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(simdjson, v)
-static simdjson::dom::parser &simdjson_get_parser() {
-    simdjson::dom::parser *parser = (simdjson::dom::parser *)SIMDJSON_G(parser);
+static simdjson::ondemand::parser &simdjson_get_parser() {
+    simdjson::ondemand::parser *parser = (simdjson::ondemand::parser *)SIMDJSON_G(parser);
     if (parser == NULL) {
-        parser = cplus_simdjson_create_parser();
+        parser = cplus_simdjson_create_ondemand_parser();
         SIMDJSON_G(parser) = parser;
         ZEND_ASSERT(parser != NULL);
     }
@@ -160,7 +146,10 @@ PHP_FUNCTION (simdjson_key_count) {
     if (!simdjson_validate_depth(depth)) {
         RETURN_NULL();
     }
-    cplus_simdjson_key_count(simdjson_get_parser(), ZSTR_VAL(json), ZSTR_LEN(json), ZSTR_VAL(key), return_value, depth);
+    simdjson::error_code error = cplus_simdjson_key_count(simdjson_get_parser(), ZSTR_VAL(json), ZSTR_LEN(json), ZSTR_VAL(key), return_value, depth);
+    if (error) {
+        cplus_simdjson_throw_jsonexception(error);
+    }
 }
 
 PHP_FUNCTION (simdjson_key_exists) {
@@ -264,7 +253,7 @@ PHP_RINIT_FUNCTION (simdjson) {
 PHP_RSHUTDOWN_FUNCTION (simdjson) {
     void *parser = SIMDJSON_G(parser);
     if (parser != NULL) {
-        cplus_simdjson_free_parser((simdjson::dom::parser *) parser);
+        cplus_simdjson_free_ondemand_parser((simdjson::ondemand::parser *) parser);
         SIMDJSON_G(parser) = NULL;
     }
     return SUCCESS;
